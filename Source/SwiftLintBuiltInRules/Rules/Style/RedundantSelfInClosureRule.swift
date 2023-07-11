@@ -1,165 +1,24 @@
 import SwiftSyntax
 
 struct RedundantSelfInClosureRule: SwiftSyntaxRule, CorrectableRule, ConfigurationProviderRule, OptInRule {
-    var configuration = SeverityConfiguration(.warning)
+    var configuration = SeverityConfiguration<Self>(.warning)
 
     static var description = RuleDescription(
         identifier: "redundant_self_in_closure",
         name: "Redundant Self in Closure",
         description: "Explicit use of 'self' is not required",
         kind: .style,
-        nonTriggeringExamples: [
-            Example("""
-                struct S {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f {
-                            x = 1
-                            f { x = 1 }
-                            g()
-                        }
-                    }
-                }
-            """),
-            Example("""
-                class C {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f { [weak self] in
-                            self?.x = 1
-                            self?.g()
-                            guard let self = self ?? C() else { return }
-                            self?.x = 1
-                        }
-                        C().f { self.x = 1 }
-                        f { [weak self] in if let self { x = 1 } }
-                    }
-                }
-            """),
-            Example("""
-                struct S {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g(x: Int) {
-                        f { self.x = x }
-                    }
-                }
-            """)
-        ],
-        triggeringExamples: [
-            Example("""
-                struct S {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f {
-                            ↓self.x = 1
-                            if ↓self.x == 1 { ↓self.g() }
-                        }
-                    }
-                }
-            """),
-            Example("""
-                class C {
-                    var x = 0
-                    func g() {
-                        {
-                            ↓self.x = 1
-                            ↓self.g()
-                        }()
-                    }
-                }
-            """),
-            Example("""
-                class C {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f { [self] in
-                            ↓self.x = 1
-                            ↓self.g()
-                            f { self.x = 1 }
-                        }
-                    }
-                }
-            """),
-            Example("""
-                class C {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f { [unowned self] in ↓self.x = 1 }
-                        f { [self = self] in ↓self.x = 1 }
-                        f { [s = self] in s.x = 1 }
-                    }
-                }
-            """)
-        ] + triggeringCompilerSpecificExamples,
-        corrections: [
-            Example("""
-                struct S {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f {
-                            ↓self.x = 1
-                            if ↓self.x == 1 { ↓self.g() }
-                        }
-                    }
-                }
-            """): Example("""
-                struct S {
-                    var x = 0
-                    func f(_ work: @escaping () -> Void) { work() }
-                    func g() {
-                        f {
-                            x = 1
-                            if x == 1 { g() }
-                        }
-                    }
-                }
-            """)
-        ]
+        nonTriggeringExamples: RedundantSelfInClosureRuleExamples.nonTriggeringExamples,
+        triggeringExamples: RedundantSelfInClosureRuleExamples.triggeringExamples,
+        corrections: RedundantSelfInClosureRuleExamples.corrections
     )
 
-#if compiler(>=5.8)
-    private static let triggeringCompilerSpecificExamples = [
-        Example("""
-            class C {
-                var x = 0
-                func f(_ work: @escaping () -> Void) { work() }
-                func g() {
-                    f { [weak self] in
-                        self?.x = 1
-                        guard let self else { return }
-                        ↓self.x = 1
-                    }
-                    f { [weak self] in
-                        self?.x = 1
-                        if let self = self else { ↓self.x = 1 }
-                        self?.x = 1
-                    }
-                    f { [weak self] in
-                        self?.x = 1
-                        while let self else { ↓self.x = 1 }
-                        self?.x = 1
-                    }
-                }
-            }
-        """)
-    ]
-#else
-    private static let triggeringCompilerSpecificExamples = [Example]()
-#endif
-
     func makeVisitor(file: SwiftLintFile) -> ViolationsSyntaxVisitor {
-        ScopeVisitor(viewMode: .sourceAccurate)
+        ContextVisitor()
     }
 
     func correct(file: SwiftLintFile) -> [Correction] {
-        let ranges = ScopeVisitor(viewMode: .sourceAccurate)
+        let ranges = ContextVisitor()
             .walk(file: file, handler: \.corrections)
             .compactMap { file.stringView.NSRange(start: $0.start, end: $0.end) }
             .filter { file.ruleEnabled(violatingRange: $0, for: self) != nil }
@@ -196,7 +55,7 @@ private enum SelfCaptureKind {
     case uncaptured
 }
 
-private class ScopeVisitor: ViolationsSyntaxVisitor {
+private class ContextVisitor: DeclaredIdentifiersTrackingVisitor {
     private var typeDeclarations = Stack<TypeDeclarationKind>()
     private var functionCalls = Stack<FunctionCallType>()
     private var selfCaptures = Stack<SelfCaptureKind>()
@@ -241,7 +100,8 @@ private class ScopeVisitor: ViolationsSyntaxVisitor {
         let localCorrections = ExplicitSelfVisitor(
             typeDeclarationKind: activeTypeDeclarationKind,
             functionCallType: activeFunctionCallType,
-            selfCaptureKind: activeSelfCaptureKind
+            selfCaptureKind: activeSelfCaptureKind,
+            scope: scope
         ).walk(tree: node.statements, handler: \.corrections)
         violations.append(contentsOf: localCorrections.map(\.start))
         corrections.append(contentsOf: localCorrections)
@@ -280,7 +140,7 @@ private class ScopeVisitor: ViolationsSyntaxVisitor {
     }
 }
 
-private class ExplicitSelfVisitor: ViolationsSyntaxVisitor {
+private class ExplicitSelfVisitor: DeclaredIdentifiersTrackingVisitor {
     private let typeDeclKind: TypeDeclarationKind
     private let functionCallType: FunctionCallType
     private let selfCaptureKind: SelfCaptureKind
@@ -289,27 +149,16 @@ private class ExplicitSelfVisitor: ViolationsSyntaxVisitor {
 
     init(typeDeclarationKind: TypeDeclarationKind,
          functionCallType: FunctionCallType,
-         selfCaptureKind: SelfCaptureKind) {
+         selfCaptureKind: SelfCaptureKind,
+         scope: Scope) {
         self.typeDeclKind = typeDeclarationKind
         self.functionCallType = functionCallType
         self.selfCaptureKind = selfCaptureKind
-        super.init(viewMode: .sourceAccurate)
-    }
-
-    override func visit(_ node: SequenceExprSyntax) -> SyntaxVisitorContinueKind {
-        let elements = node.elements
-        if elements.count == 3,
-           let assignee = elements.first?.as(MemberAccessExprSyntax.self), assignee.isBaseSelf,
-           elements.dropFirst(1).first?.is(AssignmentExprSyntax.self) == true,
-           elements.dropFirst(2).first?.as(IdentifierExprSyntax.self)?.identifier.text == assignee.name.text {
-            // We have something like `self.x = x` which is quite common and should thus be skipped.
-            return .skipChildren
-        }
-        return .visitChildren
+        super.init(scope: scope)
     }
 
     override func visitPost(_ node: MemberAccessExprSyntax) {
-        if node.isBaseSelf, isSelfRedundant {
+        if !hasSeenDeclaration(for: node.name.text), node.isBaseSelf, isSelfRedundant {
             corrections.append(
                 (start: node.positionAfterSkippingLeadingTrivia, end: node.dot.endPositionBeforeTrailingTrivia)
             )
@@ -322,21 +171,9 @@ private class ExplicitSelfVisitor: ViolationsSyntaxVisitor {
     }
 
     var isSelfRedundant: Bool {
-        if typeDeclKind == .likeStruct || functionCallType == .anonymousClosure {
-            return true
-        }
-        if selfCaptureKind == .strong && SwiftVersion.current >= .fiveDotThree {
-            return true
-        }
-        if selfCaptureKind == .weak && SwiftVersion.current >= .fiveDotEight {
-            return true
-        }
-        return false
-    }
-}
-
-private extension MemberAccessExprSyntax {
-    var isBaseSelf: Bool {
-        base?.as(IdentifierExprSyntax.self)?.isSelf == true
+           typeDeclKind == .likeStruct
+        || functionCallType == .anonymousClosure
+        || selfCaptureKind == .strong && SwiftVersion.current >= .fiveDotThree
+        || selfCaptureKind == .weak && SwiftVersion.current >= .fiveDotEight
     }
 }

@@ -1,25 +1,17 @@
-private enum ConfigurationKey: String {
-    case warning = "warning"
-    case error = "error"
-    case ignoresURLs = "ignores_urls"
-    case ignoresFunctionDeclarations = "ignores_function_declarations"
-    case ignoresComments = "ignores_comments"
-    case ignoresInterpolatedStrings = "ignores_interpolated_strings"
-}
+import SwiftLintCore
 
 struct LineLengthConfiguration: RuleConfiguration, Equatable {
-    var consoleDescription: String {
-        return length.consoleDescription +
-               ", ignores_urls: \(ignoresURLs)" +
-               ", ignores_function_declarations: \(ignoresFunctionDeclarations)" +
-               ", ignores_comments: \(ignoresComments)" +
-               ", ignores_interpolated_strings: \(ignoresInterpolatedStrings)"
-    }
+    typealias Parent = LineLengthRule
 
-    private(set) var length = SeverityLevelsConfiguration(warning: 120, error: 200)
+    @ConfigurationElement
+    private(set) var length = SeverityLevelsConfiguration<Parent>(warning: 120, error: 200)
+    @ConfigurationElement(key: "ignores_urls")
     private(set) var ignoresURLs = false
+    @ConfigurationElement(key: "ignores_function_declarations")
     private(set) var ignoresFunctionDeclarations = false
+    @ConfigurationElement(key: "ignores_comments")
     private(set) var ignoresComments = false
+    @ConfigurationElement(key: "ignores_interpolated_strings")
     private(set) var ignoresInterpolatedStrings = false
 
     var params: [RuleParameter<Int>] {
@@ -56,28 +48,25 @@ struct LineLengthConfiguration: RuleConfiguration, Equatable {
     ///
     /// - throws: Throws if the configuration value isn't properly formatted.
     private mutating func applyDictionary(configuration: Any) throws {
-        let error = Issue.unknownConfiguration
+        let error = Issue.unknownConfiguration(ruleID: Parent.identifier)
         guard let configDict = configuration as? [String: Any],
             configDict.isNotEmpty else {
             throw error
         }
 
         for (string, value) in configDict {
-            guard let key = ConfigurationKey(rawValue: string) else {
-                throw error
-            }
-            switch (key, value) {
-            case (.error, let intValue as Int):
+            switch (string, value) {
+            case ("error", let intValue as Int):
                 length.error = intValue
-            case (.warning, let intValue as Int):
+            case ("warning", let intValue as Int):
                 length.warning = intValue
-            case (.ignoresFunctionDeclarations, let boolValue as Bool):
+            case ($ignoresFunctionDeclarations, let boolValue as Bool):
                 ignoresFunctionDeclarations = boolValue
-            case (.ignoresComments, let boolValue as Bool):
+            case ($ignoresComments, let boolValue as Bool):
                 ignoresComments = boolValue
-            case (.ignoresURLs, let boolValue as Bool):
+            case ($ignoresURLs, let boolValue as Bool):
                 ignoresURLs = boolValue
-            case (.ignoresInterpolatedStrings, let boolValue as Bool):
+            case ($ignoresInterpolatedStrings, let boolValue as Bool):
                 ignoresInterpolatedStrings = boolValue
             default:
                 throw error

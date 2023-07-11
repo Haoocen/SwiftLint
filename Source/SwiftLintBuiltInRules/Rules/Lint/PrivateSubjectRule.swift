@@ -1,7 +1,7 @@
 import SwiftSyntax
 
 struct PrivateSubjectRule: SwiftSyntaxRule, OptInRule, ConfigurationProviderRule {
-    var configuration = SeverityConfiguration(.warning)
+    var configuration = SeverityConfiguration<Self>(.warning)
 
     static let description = RuleDescription(
         identifier: "private_subject",
@@ -22,7 +22,7 @@ private extension PrivateSubjectRule {
         private let subjectTypes: Set<String> = ["PassthroughSubject", "CurrentValueSubject"]
 
         override var skippableDeclarations: [DeclSyntaxProtocol.Type] {
-            [FunctionDeclSyntax.self, VariableDeclSyntax.self, SubscriptDeclSyntax.self]
+            [FunctionDeclSyntax.self, VariableDeclSyntax.self, SubscriptDeclSyntax.self, InitializerDeclSyntax.self]
         }
 
         override func visitPost(_ node: VariableDeclSyntax) {

@@ -1,40 +1,48 @@
 import SourceKittenFramework
+import SwiftLintCore
 
 struct ModifierOrderConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    private(set) var severityConfiguration = SeverityConfiguration(.warning)
-    private(set) var preferredModifierOrder = [SwiftDeclarationAttributeKind.ModifierGroup]()
+    typealias Parent = ModifierOrderRule
 
-    var consoleDescription: String {
-        return "severity: \(severityConfiguration.consoleDescription)"
-            + ", preferred_modifier_order: \(preferredModifierOrder)"
-    }
-
-    init() {
-        self.preferredModifierOrder = []
-    }
-
-    init(preferredModifierOrder: [SwiftDeclarationAttributeKind.ModifierGroup] = []) {
-        self.preferredModifierOrder = preferredModifierOrder
-    }
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.warning)
+    @ConfigurationElement(key: "preferred_modifier_order")
+    private(set) var preferredModifierOrder: [SwiftDeclarationAttributeKind.ModifierGroup] = [
+        .override,
+        .acl,
+        .setterACL,
+        .dynamic,
+        .mutators,
+        .lazy,
+        .final,
+        .required,
+        .convenience,
+        .typeMethods,
+        .owned
+    ]
 
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        if let preferredModifierOrder = configuration["preferred_modifier_order"] as? [String] {
+        if let preferredModifierOrder = configuration[$preferredModifierOrder] as? [String] {
             self.preferredModifierOrder = try preferredModifierOrder.map {
                 guard let modifierGroup = SwiftDeclarationAttributeKind.ModifierGroup(rawValue: $0),
                       modifierGroup != .atPrefixed else {
-                    throw Issue.unknownConfiguration
+                    throw Issue.unknownConfiguration(ruleID: Parent.identifier)
                 }
 
                 return modifierGroup
             }
         }
 
-        if let severityString = configuration["severity"] as? String {
+        if let severityString = configuration[$severityConfiguration] as? String {
             try severityConfiguration.apply(configuration: severityString)
         }
     }
+}
+
+extension SwiftDeclarationAttributeKind.ModifierGroup: AcceptableByConfigurationElement {
+    public func asOption() -> OptionType { .symbol(rawValue) }
 }

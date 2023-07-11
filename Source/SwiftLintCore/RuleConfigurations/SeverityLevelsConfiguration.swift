@@ -1,26 +1,10 @@
 /// A rule configuration that allows specifying thresholds for `warning` and `error` severities.
-public struct SeverityLevelsConfiguration: RuleConfiguration, Equatable {
-    public var consoleDescription: String {
-        let errorString: String
-        if let errorValue = error {
-            errorString = ", error: \(errorValue)"
-        } else {
-            errorString = ""
-        }
-        return "warning: \(warning)" + errorString
-    }
-
-    /// A condensed console description.
-    public var shortConsoleDescription: String {
-        if let errorValue = error {
-            return "w/e: \(warning)/\(errorValue)"
-        }
-        return "w: \(warning)"
-    }
-
+public struct SeverityLevelsConfiguration<Parent: Rule>: RuleConfiguration, Equatable {
     /// The threshold for a violation to be a warning.
-    public var warning: Int
+    @ConfigurationElement(key: "warning")
+    public var warning: Int = 12
     /// The threshold for a violation to be an error.
+    @ConfigurationElement(key: "error")
     public var error: Int?
 
     /// Create a `SeverityLevelsConfiguration` based on the sepecified `warning` and `error` thresholds.
@@ -46,11 +30,11 @@ public struct SeverityLevelsConfiguration: RuleConfiguration, Equatable {
             warning = configurationArray[0]
             error = (configurationArray.count > 1) ? configurationArray[1] : nil
         } else if let configDict = configuration as? [String: Int?],
-            configDict.isNotEmpty, Set(configDict.keys).isSubset(of: ["warning", "error"]) {
-            warning = (configDict["warning"] as? Int) ?? warning
-            error = configDict["error"] as? Int
+            configDict.isNotEmpty, Set(configDict.keys).isSubset(of: [$warning, $error]) {
+            warning = (configDict[$warning] as? Int) ?? warning
+            error = configDict[$error] as? Int
         } else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.description.identifier)
         }
     }
 }

@@ -1,13 +1,21 @@
-enum FileType: String {
+import SwiftLintCore
+
+enum FileType: String, AcceptableByConfigurationElement {
     case supportingType = "supporting_type"
     case mainType = "main_type"
     case `extension` = "extension"
     case previewProvider = "preview_provider"
     case libraryContentProvider = "library_content_provider"
+
+    func asOption() -> OptionType { .symbol(rawValue) }
 }
 
 struct FileTypesOrderConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    private(set) var severityConfiguration = SeverityConfiguration(.warning)
+    typealias Parent = FileTypesOrderRule
+
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.warning)
+    @ConfigurationElement(key: "order")
     private(set) var order: [[FileType]] = [
         [.supportingType],
         [.mainType],
@@ -16,18 +24,13 @@ struct FileTypesOrderConfiguration: SeverityBasedRuleConfiguration, Equatable {
         [.libraryContentProvider]
     ]
 
-    var consoleDescription: String {
-        return "severity: \(severityConfiguration.consoleDescription)" +
-            ", order: \(String(describing: order))"
-    }
-
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
         var customOrder = [[FileType]]()
-        if let custom = configuration["order"] as? [Any] {
+        if let custom = configuration[$order] as? [Any] {
             for entry in custom {
                 if let singleEntry = entry as? String {
                     if let fileType = FileType(rawValue: singleEntry) {

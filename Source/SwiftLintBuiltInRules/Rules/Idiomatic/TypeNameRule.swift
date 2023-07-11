@@ -2,7 +2,7 @@ import Foundation
 import SwiftSyntax
 
 struct TypeNameRule: SwiftSyntaxRule, ConfigurationProviderRule {
-    var configuration = TypeNameRuleConfiguration()
+    var configuration = TypeNameConfiguration()
 
     static let description = RuleDescription(
         identifier: "type_name",
@@ -24,9 +24,9 @@ struct TypeNameRule: SwiftSyntaxRule, ConfigurationProviderRule {
 
 private extension TypeNameRule {
     final class Visitor: ViolationsSyntaxVisitor {
-        private let configuration: TypeNameRuleConfiguration
+        private let configuration: TypeNameConfiguration
 
-        init(configuration: TypeNameRuleConfiguration) {
+        init(configuration: TypeNameConfiguration) {
             self.configuration = configuration
             super.init(viewMode: .sourceAccurate)
         }
@@ -92,20 +92,18 @@ private extension TypeNameRule {
                 .strippingBackticks()
                 .strippingLeadingUnderscoreIfPrivate(modifiers: modifiers)
                 .strippingTrailingSwiftUIPreviewProvider(inheritedTypes: inheritedTypes)
-            let allowedSymbols = nameConfiguration.allowedSymbols.union(.alphanumerics)
-
-            if !allowedSymbols.isSuperset(of: CharacterSet(charactersIn: name)) {
+            if !nameConfiguration.allowedSymbolsAndAlphanumerics.isSuperset(of: CharacterSet(charactersIn: name)) {
                 return ReasonedRuleViolation(
                     position: identifier.positionAfterSkippingLeadingTrivia,
-                    reason: "Type name '\(name)' should only contain alphanumeric characters",
-                    severity: .error
+                    reason: "Type name '\(name)' should only contain alphanumeric and other allowed characters",
+                    severity: nameConfiguration.unallowedSymbolsSeverity.severity
                 )
-            } else if let requiresCaseCheck = nameConfiguration.validatesStartWithLowercase,
+            } else if let caseCheckSeverity = nameConfiguration.validatesStartWithLowercase.severity,
                 name.first?.isLowercase == true {
                 return ReasonedRuleViolation(
                     position: identifier.positionAfterSkippingLeadingTrivia,
                     reason: "Type name '\(name)' should start with an uppercase character",
-                    severity: requiresCaseCheck.severity
+                    severity: caseCheckSeverity
                 )
             } else if let severity = nameConfiguration.severity(forLength: name.count) {
                 return ReasonedRuleViolation(

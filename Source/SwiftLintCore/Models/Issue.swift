@@ -3,7 +3,7 @@ import Foundation
 /// All possible SwiftLint issues which are printed as warnings by default.
 public enum Issue: LocalizedError, Equatable {
     /// The configuration didn't match internal expectations.
-    case unknownConfiguration
+    case unknownConfiguration(ruleID: String)
 
     /// Rule is listed multiple times in the configuration.
     case listedMultipleTime(ruleID: String, times: Int)
@@ -47,6 +47,9 @@ public enum Issue: LocalizedError, Equatable {
     /// An error that occurred when parsing YAML.
     case yamlParsing(String)
 
+    /// Flag to enable warnings for deprecations being printed to the console. Printing is enabled by default.
+    public static var printDeprecationWarnings = true
+
     /// Wraps any `Error` into a `SwiftLintError.genericWarning` if it is not already a `SwiftLintError`.
     ///
     /// - parameter error: Any `Error`.
@@ -75,13 +78,16 @@ public enum Issue: LocalizedError, Equatable {
 
     /// Print the issue to the console.
     public func print() {
+        if case .ruleDeprecated = self, !Self.printDeprecationWarnings {
+            return
+        }
         queuedPrintError(errorDescription)
     }
 
     private var message: String {
         switch self {
-        case .unknownConfiguration:
-            return "Invalid configuration. Falling back to default."
+        case let .unknownConfiguration(id):
+            return "Invalid configuration for '\(id)' rule. Falling back to default."
         case let .listedMultipleTime(id, times):
             return "'\(id)' is listed \(times) times in the configuration."
         case let .renamedIdentifier(old, new):

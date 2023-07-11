@@ -20,9 +20,9 @@ def swiftlint_repos(bzlmod = False):
 
     http_archive(
         name = "SwiftSyntax",
-        sha256 = "8d21552ba8e28646ba11081d790d38d0986bd9920eaa67d8f9910402390f1e6e",
-        strip_prefix = "swift-syntax-509.0.0-swift-DEVELOPMENT-SNAPSHOT-2023-05-02-a",
-        url = "https://github.com/apple/swift-syntax/archive/refs/tags/509.0.0-swift-DEVELOPMENT-SNAPSHOT-2023-05-02-a.tar.gz",
+        sha256 = "74f0fb48a07d12e6865dd955ec4c64e25b04764c23f0dad176d88951e49c8ffd",
+        strip_prefix = "swift-syntax-509.0.0-swift-DEVELOPMENT-SNAPSHOT-2023-07-04-a",
+        url = "https://github.com/apple/swift-syntax/archive/refs/tags/509.0.0-swift-DEVELOPMENT-SNAPSHOT-2023-07-04-a.tar.gz",
     )
 
     http_archive(
@@ -35,10 +35,10 @@ def swiftlint_repos(bzlmod = False):
 
     http_archive(
         name = "com_github_krzyzanowskim_cryptoswift",
-        sha256 = "ad561c63d1e7954dbadd88cf5588efe43236c382ea7dc964996c09e87b7d4fd1",
+        sha256 = "974d7892d7b4307a4fbe20ac389c9f3ab851bb17cb08e7f55443adb616b3f6ec",
         build_file = "@SwiftLint//bazel:CryptoSwift.BUILD",
-        strip_prefix = "CryptoSwift-1.7.1",
-        url = "https://github.com/krzyzanowskim/CryptoSwift/archive/refs/tags/1.7.1.tar.gz",
+        strip_prefix = "CryptoSwift-1.7.2",
+        url = "https://github.com/krzyzanowskim/CryptoSwift/archive/refs/tags/1.7.2.tar.gz",
     )
 
 def _swiftlint_repos_bzlmod(_):

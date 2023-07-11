@@ -1,24 +1,18 @@
-private enum ConfigurationKey: String {
-    case severity
-    case additionalTerms = "additional_terms"
-    case overrideTerms = "override_terms"
-    case overrideAllowedTerms = "override_allowed_terms"
-}
+import SwiftLintCore
 
 struct InclusiveLanguageConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    var severityConfiguration = SeverityConfiguration(.warning)
-    private var additionalTerms: Set<String>?
-    private var overrideTerms: Set<String>?
-    private var overrideAllowedTerms: Set<String>?
+    typealias Parent = InclusiveLanguageRule
+
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.warning)
+    @ConfigurationElement(key: "additional_terms")
+    private(set) var additionalTerms: Set<String>?
+    @ConfigurationElement(key: "override_terms")
+    private(set) var overrideTerms: Set<String>?
+    @ConfigurationElement(key: "override_allowed_terms")
+    private(set) var overrideAllowedTerms: Set<String>?
     private(set) var allTerms: [String]
     private(set) var allAllowedTerms: Set<String>
-
-    var consoleDescription: String {
-        "severity: \(severityConfiguration.consoleDescription)"
-            + ", additional_terms: \(additionalTerms?.sorted() ?? [])"
-            + ", override_terms: \(overrideTerms?.sorted() ?? [])"
-            + ", override_allowed_terms: \(overrideAllowedTerms?.sorted() ?? [])"
-    }
 
     private let defaultTerms: Set<String> = [
         "whitelist",
@@ -38,16 +32,16 @@ struct InclusiveLanguageConfiguration: SeverityBasedRuleConfiguration, Equatable
 
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        if let severityString = configuration[ConfigurationKey.severity.rawValue] {
+        if let severityString = configuration[$severityConfiguration] {
             try severityConfiguration.apply(configuration: severityString)
         }
 
-        additionalTerms = lowercasedSet(for: .additionalTerms, from: configuration)
-        overrideTerms = lowercasedSet(for: .overrideTerms, from: configuration)
-        overrideAllowedTerms = lowercasedSet(for: .overrideAllowedTerms, from: configuration)
+        additionalTerms = lowercasedSet(for: $additionalTerms, from: configuration)
+        overrideTerms = lowercasedSet(for: $overrideTerms, from: configuration)
+        overrideAllowedTerms = lowercasedSet(for: $overrideAllowedTerms, from: configuration)
 
         var allTerms = overrideTerms ?? defaultTerms
         allTerms.formUnion(additionalTerms ?? [])
@@ -55,8 +49,8 @@ struct InclusiveLanguageConfiguration: SeverityBasedRuleConfiguration, Equatable
         allAllowedTerms = overrideAllowedTerms ?? defaultAllowedTerms
     }
 
-    private func lowercasedSet(for key: ConfigurationKey, from config: [String: Any]) -> Set<String>? {
-        guard let list = config[key.rawValue] as? [String] else { return nil }
+    private func lowercasedSet(for key: String, from config: [String: Any]) -> Set<String>? {
+        guard let list = config[key] as? [String] else { return nil }
         return Set(list.map { $0.lowercased() })
     }
 }

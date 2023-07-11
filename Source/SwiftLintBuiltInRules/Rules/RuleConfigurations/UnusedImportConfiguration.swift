@@ -1,6 +1,8 @@
+import SwiftLintCore
+
 /// The configuration payload mapping an imported module to a set of modules that are allowed to be
 /// transitively imported.
-struct TransitiveModuleConfiguration: Equatable {
+struct TransitiveModuleConfiguration<Parent: Rule>: Equatable, AcceptableByConfigurationElement {
     /// The module imported in a source file.
     let importedModule: String
     /// The set of modules that can be transitively imported by `importedModule`.
@@ -12,44 +14,47 @@ struct TransitiveModuleConfiguration: Equatable {
             let importedModule = configurationDict["module"] as? String,
             let transitivelyImportedModules = configurationDict["allowed_transitive_imports"] as? [String]
         else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
         self.importedModule = importedModule
         self.transitivelyImportedModules = transitivelyImportedModules
     }
+
+    func asOption() -> OptionType {
+        .nest {
+            importedModule => .list(transitivelyImportedModules.map { .string($0) })
+        }
+    }
 }
 
 struct UnusedImportConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    var consoleDescription: String {
-        return [
-            "severity: \(severityConfiguration.consoleDescription)",
-            "require_explicit_imports: \(requireExplicitImports)",
-            "allowed_transitive_imports: \(allowedTransitiveImports)",
-            "always_keep_imports: \(alwaysKeepImports)"
-        ].joined(separator: ", ")
-    }
+    typealias Parent = UnusedImportRule
 
-    private(set) var severityConfiguration = SeverityConfiguration.warning
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>.warning
+    @ConfigurationElement(key: "require_explicit_imports")
     private(set) var requireExplicitImports = false
-    private(set) var allowedTransitiveImports = [TransitiveModuleConfiguration]()
+    @ConfigurationElement(key: "allowed_transitive_imports")
+    private(set) var allowedTransitiveImports = [TransitiveModuleConfiguration<Parent>]()
     /// A set of modules to never remove the imports of.
+    @ConfigurationElement(key: "always_keep_imports")
     private(set) var alwaysKeepImports = [String]()
 
     mutating func apply(configuration: Any) throws {
         guard let configurationDict = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        if let severity = configurationDict["severity"] {
+        if let severity = configurationDict[$severityConfiguration] {
             try severityConfiguration.apply(configuration: severity)
         }
-        if let requireExplicitImports = configurationDict["require_explicit_imports"] as? Bool {
+        if let requireExplicitImports = configurationDict[$requireExplicitImports] as? Bool {
             self.requireExplicitImports = requireExplicitImports
         }
-        if let allowedTransitiveImports = configurationDict["allowed_transitive_imports"] as? [Any] {
+        if let allowedTransitiveImports = configurationDict[$allowedTransitiveImports] as? [Any] {
             self.allowedTransitiveImports = try allowedTransitiveImports.map(TransitiveModuleConfiguration.init)
         }
-        if let alwaysKeepImports = configurationDict["always_keep_imports"] as? [String] {
+        if let alwaysKeepImports = configurationDict[$alwaysKeepImports] as? [String] {
             self.alwaysKeepImports = alwaysKeepImports
         }
     }

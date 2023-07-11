@@ -1,27 +1,28 @@
-struct OperatorUsageWhitespaceConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    private(set) var severityConfiguration = SeverityConfiguration(.warning)
-    private(set) var linesLookAround = 2
-    private(set) var skipAlignedConstants = true
-    private(set) var allowedNoSpaceOperators: [String] = ["...", "..<"]
+import SwiftLintCore
 
-    var consoleDescription: String {
-        return "severity: \(severityConfiguration.consoleDescription)"
-            + ", lines_look_around: \(linesLookAround)"
-            + ", skip_aligned_constants: \(skipAlignedConstants)"
-            + ", allowed_no_space_operators: \(allowedNoSpaceOperators)"
-    }
+struct OperatorUsageWhitespaceConfiguration: SeverityBasedRuleConfiguration, Equatable {
+    typealias Parent = OperatorUsageWhitespaceRule
+
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.warning)
+    @ConfigurationElement(key: "lines_look_around")
+    private(set) var linesLookAround = 2
+    @ConfigurationElement(key: "skip_aligned_constants")
+    private(set) var skipAlignedConstants = true
+    @ConfigurationElement(key: "allowed_no_space_operators")
+    private(set) var allowedNoSpaceOperators = ["...", "..<"]
 
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        linesLookAround = configuration["lines_look_around"] as? Int ?? 2
-        skipAlignedConstants = configuration["skip_aligned_constants"] as? Bool ?? true
+        linesLookAround = configuration[$linesLookAround] as? Int ?? 2
+        skipAlignedConstants = configuration[$skipAlignedConstants] as? Bool ?? true
         allowedNoSpaceOperators =
-            configuration["allowed_no_space_operators"] as? [String] ?? ["...", "..<"]
+            configuration[$allowedNoSpaceOperators] as? [String] ?? ["...", "..<"]
 
-        if let severityString = configuration["severity"] as? String {
+        if let severityString = configuration[$severityConfiguration] as? String {
             try severityConfiguration.apply(configuration: severityString)
         }
     }

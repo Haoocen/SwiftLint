@@ -6,8 +6,9 @@ public protocol Rule {
     /// A verbose description of many of this rule's properties.
     static var description: RuleDescription { get }
 
-    /// A description of how this rule has been configured to run.
-    var configurationDescription: String { get }
+    /// A description of how this rule has been configured to run. It can be built using the annotated result builder.
+    @RuleConfigurationDescriptionBuilder
+    var configurationDescription: Documentable { get }
 
     /// A default initializer for rules. All rules need to be trivially initializable.
     init()
@@ -84,8 +85,13 @@ public extension Rule {
     /// The cache description which will be used to determine if a previous
     /// cached value is still valid given the new cache value.
     var cacheDescription: String {
-        return (self as? CacheDescriptionProvider)?.cacheDescription ?? configurationDescription
+        (self as? CacheDescriptionProvider)?.cacheDescription ?? configurationDescription.oneLiner()
     }
+}
+
+public extension Rule {
+    /// The rule's unique identifier which is the same as `Rule.description.identifier`.
+    static var identifier: String { description.identifier }
 }
 
 /// A rule that is not enabled by default. Rules conforming to this need to be explicitly enabled by users.
@@ -98,6 +104,24 @@ public protocol ConfigurationProviderRule: Rule {
 
     /// This rule's configuration.
     var configuration: ConfigurationType { get set }
+}
+
+public extension ConfigurationProviderRule {
+    init(configuration: Any) throws {
+        self.init()
+        try self.configuration.apply(configuration: configuration)
+    }
+
+    func isEqualTo(_ rule: Rule) -> Bool {
+        if let rule = rule as? Self {
+            return configuration.isEqualTo(rule.configuration)
+        }
+        return false
+    }
+
+    var configurationDescription: Documentable {
+        RuleConfigurationDescription.from(configuration: configuration)
+    }
 }
 
 /// A rule that can correct violations.

@@ -1,23 +1,24 @@
-struct TrailingWhitespaceConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    private(set) var severityConfiguration = SeverityConfiguration(.warning)
-    private(set) var ignoresEmptyLines = false
-    private(set) var ignoresComments = true
+import SwiftLintCore
 
-    var consoleDescription: String {
-        return "severity: \(severityConfiguration.consoleDescription)" +
-            ", ignores_empty_lines: \(ignoresEmptyLines)" +
-            ", ignores_comments: \(ignoresComments)"
-    }
+struct TrailingWhitespaceConfiguration: SeverityBasedRuleConfiguration, Equatable {
+    typealias Parent = TrailingWhitespaceRule
+
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.warning)
+    @ConfigurationElement(key: "ignores_empty_lines")
+    private(set) var ignoresEmptyLines = false
+    @ConfigurationElement(key: "ignores_comments")
+    private(set) var ignoresComments = true
 
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        ignoresEmptyLines = (configuration["ignores_empty_lines"] as? Bool == true)
-        ignoresComments = (configuration["ignores_comments"] as? Bool == true)
+        ignoresEmptyLines = (configuration[$ignoresEmptyLines] as? Bool == true)
+        ignoresComments = (configuration[$ignoresComments] as? Bool == true)
 
-        if let severityString = configuration["severity"] as? String {
+        if let severityString = configuration[$severityConfiguration] as? String {
             try severityConfiguration.apply(configuration: severityString)
         }
     }

@@ -2,23 +2,25 @@
 import XCTest
 
 class NameConfigurationTests: SwiftLintTestCase {
+    typealias TesteeType = NameConfiguration<RuleMock>
+
     func testNameConfigurationSetsCorrectly() {
         let config = [ "min_length": ["warning": 17, "error": 7],
                        "max_length": ["warning": 170, "error": 700],
                        "excluded": "id",
                        "allowed_symbols": ["$"],
                        "validates_start_with_lowercase": "warning"] as [String: Any]
-        var nameConfig = NameConfiguration(minLengthWarning: 0,
-                                           minLengthError: 0,
-                                           maxLengthWarning: 0,
-                                           maxLengthError: 0)
-        let comp = NameConfiguration(minLengthWarning: 17,
-                                     minLengthError: 7,
-                                     maxLengthWarning: 170,
-                                     maxLengthError: 700,
-                                     excluded: ["id"],
-                                     allowedSymbols: ["$"],
-                                     validatesStartWithLowercase: .warning)
+        var nameConfig = TesteeType(minLengthWarning: 0,
+                                    minLengthError: 0,
+                                    maxLengthWarning: 0,
+                                    maxLengthError: 0)
+        let comp = TesteeType(minLengthWarning: 17,
+                              minLengthError: 7,
+                              maxLengthWarning: 170,
+                              maxLengthError: 700,
+                              excluded: ["id"],
+                              allowedSymbols: ["$"],
+                              validatesStartWithLowercase: .warning)
         do {
             try nameConfig.apply(configuration: config)
             XCTAssertEqual(nameConfig, comp)
@@ -27,16 +29,31 @@ class NameConfigurationTests: SwiftLintTestCase {
         }
     }
 
+    func testCaseCheck() throws {
+        var nameConfig = TesteeType(minLengthWarning: 0,
+                                    minLengthError: 0,
+                                    maxLengthWarning: 0,
+                                    maxLengthError: 0)
+
+        XCTAssertEqual(nameConfig.validatesStartWithLowercase, .error)
+
+        try nameConfig.apply(configuration: ["validates_start_with_lowercase": "off"])
+        XCTAssertEqual(nameConfig.validatesStartWithLowercase, .off)
+
+        try nameConfig.apply(configuration: ["validates_start_with_lowercase": "warning"])
+        XCTAssertEqual(nameConfig.validatesStartWithLowercase, .warning)
+    }
+
     func testNameConfigurationWithDeprecatedBooleanSeverity() throws {
-        var nameConfig = NameConfiguration(minLengthWarning: 0,
-                                           minLengthError: 0,
-                                           maxLengthWarning: 0,
-                                           maxLengthError: 0)
+        var nameConfig = TesteeType(minLengthWarning: 0,
+                                    minLengthError: 0,
+                                    maxLengthWarning: 0,
+                                    maxLengthError: 0)
 
         XCTAssertEqual(nameConfig.validatesStartWithLowercase, .error)
 
         try nameConfig.apply(configuration: ["validates_start_with_lowercase": false])
-        XCTAssertNil(nameConfig.validatesStartWithLowercase)
+        XCTAssertEqual(nameConfig.validatesStartWithLowercase, .off)
 
         try nameConfig.apply(configuration: ["validates_start_with_lowercase": true])
         XCTAssertEqual(nameConfig.validatesStartWithLowercase, .error)
@@ -44,30 +61,43 @@ class NameConfigurationTests: SwiftLintTestCase {
 
     func testNameConfigurationThrowsOnBadConfig() {
         let config = 17
-        var nameConfig = NameConfiguration(minLengthWarning: 0,
-                                           minLengthError: 0,
-                                           maxLengthWarning: 0,
-                                           maxLengthError: 0)
-        checkError(Issue.unknownConfiguration) {
+        var nameConfig = TesteeType(minLengthWarning: 0,
+                                    minLengthError: 0,
+                                    maxLengthWarning: 0,
+                                    maxLengthError: 0)
+        checkError(Issue.unknownConfiguration(ruleID: RuleMock.description.identifier)) {
             try nameConfig.apply(configuration: config)
         }
     }
 
     func testNameConfigurationMinLengthThreshold() {
-        let nameConfig = NameConfiguration(minLengthWarning: 7,
-                                           minLengthError: 17,
-                                           maxLengthWarning: 0,
-                                           maxLengthError: 0,
-                                           excluded: [])
+        let nameConfig = TesteeType(minLengthWarning: 7,
+                                    minLengthError: 17,
+                                    maxLengthWarning: 0,
+                                    maxLengthError: 0,
+                                    excluded: [])
         XCTAssertEqual(nameConfig.minLengthThreshold, 17)
     }
 
     func testNameConfigurationMaxLengthThreshold() {
-        let nameConfig = NameConfiguration(minLengthWarning: 0,
-                                           minLengthError: 0,
-                                           maxLengthWarning: 17,
-                                           maxLengthError: 7,
-                                           excluded: [])
+        let nameConfig = TesteeType(minLengthWarning: 0,
+                                    minLengthError: 0,
+                                    maxLengthWarning: 17,
+                                    maxLengthError: 7,
+                                    excluded: [])
         XCTAssertEqual(nameConfig.maxLengthThreshold, 7)
+    }
+
+    func testUnallowedSymbolsSeverity() throws {
+        var nameConfig = TesteeType(minLengthWarning: 3,
+                                    minLengthError: 1,
+                                    maxLengthWarning: 17,
+                                    maxLengthError: 22,
+                                    unallowedSymbolsSeverity: .warning)
+        XCTAssertEqual(nameConfig.unallowedSymbolsSeverity, .warning)
+
+        try nameConfig.apply(configuration: ["unallowed_symbols_severity": "error"])
+
+        XCTAssertEqual(nameConfig.unallowedSymbolsSeverity, .error)
     }
 }

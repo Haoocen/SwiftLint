@@ -1,26 +1,22 @@
-private enum ConfigurationKey: String {
-    case severity = "severity"
-    case onlyAfterDot = "only_after_dot"
-}
+import SwiftLintCore
 
 struct EmptyCountConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    private(set) var severityConfiguration = SeverityConfiguration(.error)
-    private(set) var onlyAfterDot = false
+    typealias Parent = EmptyCountRule
 
-    var consoleDescription: String {
-        return ["severity: \(severityConfiguration.consoleDescription)",
-                "\(ConfigurationKey.onlyAfterDot.rawValue): \(onlyAfterDot)"].joined(separator: ", ")
-    }
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.error)
+    @ConfigurationElement(key: "only_after_dot")
+    private(set) var onlyAfterDot = false
 
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        if let severityString = configuration[ConfigurationKey.severity.rawValue] as? String {
+        if let severityString = configuration[$severityConfiguration] as? String {
             try severityConfiguration.apply(configuration: severityString)
         }
 
-        onlyAfterDot = configuration[ConfigurationKey.onlyAfterDot.rawValue] as? Bool ?? false
+        onlyAfterDot = configuration[$onlyAfterDot] as? Bool ?? false
     }
 }

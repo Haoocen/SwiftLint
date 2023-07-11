@@ -82,3 +82,15 @@ internal extension ConfigurationTests {
         }
     }
 }
+
+struct RuleMock: Rule {
+    var configurationDescription: Documentable { RuleConfigurationOption.noOptions }
+
+    static let description = RuleDescription(identifier: "RuleMock", name: "",
+                                             description: "", kind: .style)
+
+    init() {}
+    init(configuration: Any) throws { self.init() }
+
+    func validate(file: SwiftLintFile) -> [StyleViolation] { [] }
+}

@@ -1,26 +1,22 @@
-private enum ConfigurationKey: String {
-    case severity = "severity"
-    case bindIdentifier = "bind_identifier"
-}
+import SwiftLintCore
 
 struct SelfBindingConfiguration: SeverityBasedRuleConfiguration, Equatable {
-    private(set) var severityConfiguration = SeverityConfiguration(.warning)
-    private(set) var bindIdentifier = "self"
+    typealias Parent = SelfBindingRule
 
-    var consoleDescription: String {
-        return ["severity: \(severityConfiguration.consoleDescription)",
-                "\(ConfigurationKey.bindIdentifier): \(bindIdentifier)"].joined(separator: ", ")
-    }
+    @ConfigurationElement(key: "severity")
+    private(set) var severityConfiguration = SeverityConfiguration<Parent>(.warning)
+    @ConfigurationElement(key: "bind_identifier")
+    private(set) var bindIdentifier = "self"
 
     mutating func apply(configuration: Any) throws {
         guard let configuration = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        if let severityString = configuration[ConfigurationKey.severity.rawValue] as? String {
+        if let severityString = configuration[$severityConfiguration] as? String {
             try severityConfiguration.apply(configuration: severityString)
         }
 
-        bindIdentifier = configuration[ConfigurationKey.bindIdentifier.rawValue] as? String ?? "self"
+        bindIdentifier = configuration[$bindIdentifier] as? String ?? "self"
     }
 }

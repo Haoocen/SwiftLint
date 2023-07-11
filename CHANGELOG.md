@@ -10,13 +10,124 @@
 
 #### Enhancements
 
+* None.
+
+#### Bug Fixes
+
+* Document `exclude_ranges` option for `number_separator` rule.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+
+* Make sure `severity` is configurable for `type_contents_order` rule.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+
+* Bazel: mark `rules_xcodeproj` as a dev dependency.  
+  [Thi Doãn](https://github.com/thii)
+  [JP Simard](https://github.com/jpsim)
+  [#4737](https://github.com/realm/SwiftLint/issues/4737)
+
+## 0.52.4: Lid Switch
+
+#### Breaking
+
+* None.
+
+#### Experimental
+
+* None.
+
+#### Enhancements
+
+* Handle static `spec` methods in `quick_discouraged_call` rule. The method
+  type changed from an instance method to a class method in Quick 7.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#5072](https://github.com/realm/SwiftLint/issues/5072)
+
+* Prettify the rule configuration presentation on the command line as well as
+  on the website.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+
+#### Bug Fixes
+
+* Fix false positives for the `unneeded_synthesized_initializer` rule, when
+  no argument initializers had side-effects.  
+  [Martin Redington](https://github.com/mildm8nnered)
+  [#5075](https://github.com/realm/SwiftLint/issues/5075)
+
+* Ignore `switch` expressions assigned to variables in `switch_case_alignment`
+  rule.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#5080](https://github.com/realm/SwiftLint/issues/5080)
+
+* Fix auto-correction for the `direct_return` rule, when statements have
+  trailing comments.  
+  [Martin Redington](https://github.com/mildm8nnered)
+  [#5081](https://github.com/realm/SwiftLint/issues/5081)
+
+* Fix false positives for the `private_subject` rule when creating subjects
+  inside initializers.  
+  [kasrababaei](https://github.com/kasrababaei)
+
+* Fix false positive for `prefer_self_in_static_references` when a class
+  inherits from another class with generic types.  
+  [kasrababaei](https://github.com/kasrababaei)
+
+## 0.52.3: Duplicate Hampers
+
+#### Breaking
+
+* None.
+
+#### Experimental
+
+* None.
+
+#### Enhancements
+
+* Make severity for unallowed symbols configurable. The option name is
+  `unallowed_symbols_severity`. It accepts the two values `warning` and `error`
+  (default) as usual.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+
+* Mention a rule's identifier in the console message that is printed when the
+  rule's associated configuration entry contains invalid values.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+
 * Silence `xct_specific_matcher` rule on "one argument asserts" if there are
   potential types or tuples involved in the comparison as types and tuples do
   not conform to `Equatable`.  
   [SimplyDanny](https://github.com/SimplyDanny)
   [#4990](https://github.com/realm/SwiftLint/issues/4990)
 
+* Add `grouping` option to the `sorted_imports` rule allowing
+  to sort groups of imports defined by their preceding attributes
+  (e.g. `@testable`, `@_exported`, ...).  
+  [hiltonc](https://github.com/hiltonc)
+
+* Add new `--silence-deprecation-warnings` flag that silences deprecation
+  warnings that would otherwise be printed to the console.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#4989](https://github.com/realm/SwiftLint/issues/4989)
+
+* Do not trigger `redundant_self_in_closure` rule when another idenfier `x` in
+  scope shadows the field accessed by `self.x` to avoid semantical changes.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#5010](https://github.com/realm/SwiftLint/issues/5010)
+
+* Rewrite `todo` rule with SwiftSyntax.  
+  [woxtu](https://github.com/woxtu)
+
+* Adds an `unneeded_synthesized_initializer` rule, based on
+  `swift-format`'s `UseSynthesizedInitializer` rule, which warns
+  when a defined default or memberwise initializer would have been
+  automatically synthesized.  
+  [Martin Redington](https://github.com/mildm8nnered)
+
 #### Bug Fixes
+
+* The option `validates_start_with_lowercase` can now be disabled by setting it
+  to `off`.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#5036](https://github.com/realm/SwiftLint/issues/5036)
 
 * Do not trigger `prefer_self_in_static_references` rule on `typealias`
   declarations in classes.  
@@ -25,6 +136,32 @@
 * Fix autocorrect for `CGIntersectionRect` in `legacy_cggeometry_functions`  
   [Haoocen](https://github.com/Haoocen)
   [#5023](https://github.com/realm/SwiftLint/pull/5023)
+
+* Do not trigger `prefer_self_in_static_references` rule on collection types in
+  classes, but on initializers like `[C]()` in all types.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#5042](https://github.com/realm/SwiftLint/issues/5042)
+
+* Fix false positives on `redundant_objc_attribute` rule for enums
+  and private members.  
+  [Martin Redington](https://github.com/mildm8nnered)
+  [#4633](https://github.com/realm/SwiftLint/issues/4633)
+
+* Fix autocorrect for `CGIntersectionRect` in `legacy_cggeometry_functions`
+  rule.  
+  [Haoocen](https://github.com/Haoocen)
+  [#5023](https://github.com/realm/SwiftLint/pull/5023)
+
+* Fix false positives on `sorted_first_last` rule when `first`/`last` have
+  a predicate.  
+  [woxtu](https://github.com/woxtu)
+  [#3023](https://github.com/realm/SwiftLint/issues/3023)
+
+* Work around dyld warning about duplicate SwiftSyntax classes with Xcode 15
+  betas.  
+  [keith](https://github.com/keith)
+  [JP Simard](https://github.com/jpsim)
+  [#4782](https://github.com/realm/SwiftLint/issues/4782)
 
 ## 0.52.2: Crisper Clearer Pleats
 

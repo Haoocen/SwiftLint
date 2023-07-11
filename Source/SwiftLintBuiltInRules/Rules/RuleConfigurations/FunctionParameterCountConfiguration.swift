@@ -1,17 +1,12 @@
-private enum ConfigurationKey: String {
-    case warning = "warning"
-    case error = "error"
-    case ignoresDefaultParameters = "ignores_default_parameters"
-}
+import SwiftLintCore
 
 struct FunctionParameterCountConfiguration: RuleConfiguration, Equatable {
-    private(set) var ignoresDefaultParameters = true
-    private(set) var severityConfiguration = SeverityLevelsConfiguration(warning: 5, error: 8)
+    typealias Parent = FunctionParameterCountRule
 
-    var consoleDescription: String {
-        return "severity: \(severityConfiguration.consoleDescription)" +
-        ", \(ConfigurationKey.ignoresDefaultParameters.rawValue): \(ignoresDefaultParameters)"
-    }
+    @ConfigurationElement
+    private(set) var severityConfiguration = SeverityLevelsConfiguration<Parent>(warning: 5, error: 8)
+    @ConfigurationElement(key: "ignores_default_parameters")
+    private(set) var ignoresDefaultParameters = true
 
     mutating func apply(configuration: Any) throws {
         if let configurationArray = [Int].array(of: configuration),
@@ -21,22 +16,19 @@ struct FunctionParameterCountConfiguration: RuleConfiguration, Equatable {
             severityConfiguration = SeverityLevelsConfiguration(warning: warning, error: error)
         } else if let configDict = configuration as? [String: Any], configDict.isNotEmpty {
             for (string, value) in configDict {
-                guard let key = ConfigurationKey(rawValue: string) else {
-                    throw Issue.unknownConfiguration
-                }
-                switch (key, value) {
-                case (.error, let intValue as Int):
+                switch (string, value) {
+                case ("error", let intValue as Int):
                     severityConfiguration.error = intValue
-                case (.warning, let intValue as Int):
+                case ("warning", let intValue as Int):
                     severityConfiguration.warning = intValue
-                case (.ignoresDefaultParameters, let boolValue as Bool):
+                case ($ignoresDefaultParameters, let boolValue as Bool):
                     ignoresDefaultParameters = boolValue
                 default:
-                    throw Issue.unknownConfiguration
+                    throw Issue.unknownConfiguration(ruleID: Parent.identifier)
                 }
             }
         } else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
     }
 }

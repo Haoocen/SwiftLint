@@ -626,9 +626,9 @@ class LineLengthRuleGeneratedTests: SwiftLintTestCase {
     }
 }
 
-class LiteralExpressionEndIdentationRuleGeneratedTests: SwiftLintTestCase {
+class LiteralExpressionEndIndentationRuleGeneratedTests: SwiftLintTestCase {
     func testWithDefaultConfiguration() {
-        verifyRule(LiteralExpressionEndIdentationRule.description)
+        verifyRule(LiteralExpressionEndIndentationRule.description)
     }
 }
 
@@ -1235,6 +1235,12 @@ class UnneededBreakInSwitchRuleGeneratedTests: SwiftLintTestCase {
 class UnneededParenthesesInClosureArgumentRuleGeneratedTests: SwiftLintTestCase {
     func testWithDefaultConfiguration() {
         verifyRule(UnneededParenthesesInClosureArgumentRule.description)
+    }
+}
+
+class UnneededSynthesizedInitializerRuleGeneratedTests: SwiftLintTestCase {
+    func testWithDefaultConfiguration() {
+        verifyRule(UnneededSynthesizedInitializerRule.description)
     }
 }
 

@@ -1,25 +1,27 @@
-struct NestingConfiguration: RuleConfiguration, Equatable {
-    var consoleDescription: String {
-        return "(type_level) \(typeLevel.shortConsoleDescription)"
-            + ", (function_level) \(functionLevel.shortConsoleDescription)"
-            + ", (check_nesting_in_closures_and_statements) \(checkNestingInClosuresAndStatements)"
-            + ", (always_allow_one_type_in_functions) \(alwaysAllowOneTypeInFunctions)"
-    }
+import SwiftLintCore
 
-    private(set) var typeLevel = SeverityLevelsConfiguration(warning: 1)
-    private(set) var functionLevel = SeverityLevelsConfiguration(warning: 2)
+struct NestingConfiguration: RuleConfiguration, Equatable {
+    typealias Parent = NestingRule
+    typealias Severity = SeverityLevelsConfiguration<Parent>
+
+    @ConfigurationElement(key: "type_level")
+    private(set) var typeLevel = Severity(warning: 1)
+    @ConfigurationElement(key: "function_level")
+    private(set) var functionLevel = Severity(warning: 2)
+    @ConfigurationElement(key: "check_nesting_in_closures_and_statements")
     private(set) var checkNestingInClosuresAndStatements = true
+    @ConfigurationElement(key: "always_allow_one_type_in_functions")
     private(set) var alwaysAllowOneTypeInFunctions = false
 
     mutating func apply(configuration: Any) throws {
         guard let configurationDict = configuration as? [String: Any] else {
-            throw Issue.unknownConfiguration
+            throw Issue.unknownConfiguration(ruleID: Parent.identifier)
         }
 
-        if let typeLevelConfiguration = configurationDict["type_level"] {
+        if let typeLevelConfiguration = configurationDict[$typeLevel] {
             try typeLevel.apply(configuration: typeLevelConfiguration)
         }
-        if let functionLevelConfiguration = configurationDict["function_level"] {
+        if let functionLevelConfiguration = configurationDict[$functionLevel] {
             try functionLevel.apply(configuration: functionLevelConfiguration)
         } else if let statementLevelConfiguration = configurationDict["statement_level"] {
             queuedPrintError(
@@ -31,12 +33,12 @@ struct NestingConfiguration: RuleConfiguration, Equatable {
             try functionLevel.apply(configuration: statementLevelConfiguration)
         }
         checkNestingInClosuresAndStatements =
-            configurationDict["check_nesting_in_closures_and_statements"] as? Bool ?? true
+            configurationDict[$checkNestingInClosuresAndStatements] as? Bool ?? true
         alwaysAllowOneTypeInFunctions =
-            configurationDict["always_allow_one_type_in_functions"] as? Bool ?? false
+            configurationDict[$alwaysAllowOneTypeInFunctions] as? Bool ?? false
     }
 
-    func severity(with config: SeverityLevelsConfiguration, for level: Int) -> ViolationSeverity? {
+    func severity(with config: Severity, for level: Int) -> ViolationSeverity? {
         if let error = config.error, level > error {
             return .error
         } else if level > config.warning {
@@ -45,7 +47,7 @@ struct NestingConfiguration: RuleConfiguration, Equatable {
         return nil
     }
 
-    func threshold(with config: SeverityLevelsConfiguration, for severity: ViolationSeverity) -> Int {
+    func threshold(with config: Severity, for severity: ViolationSeverity) -> Int {
         switch severity {
         case .error: return config.error ?? config.warning
         case .warning: return config.warning

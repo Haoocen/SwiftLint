@@ -2,11 +2,11 @@ import Foundation
 import SourceKittenFramework
 
 struct IdentifierNameRule: ASTRule, ConfigurationProviderRule {
-    var configuration = NameConfiguration(minLengthWarning: 3,
-                                          minLengthError: 2,
-                                          maxLengthWarning: 40,
-                                          maxLengthError: 60,
-                                          excluded: ["id"])
+    var configuration = NameConfiguration<Self>(minLengthWarning: 3,
+                                                minLengthError: 2,
+                                                maxLengthWarning: 40,
+                                                maxLengthError: 60,
+                                                excluded: ["id"])
 
     static let description = RuleDescription(
         identifier: "identifier_name",
@@ -32,26 +32,24 @@ struct IdentifierNameRule: ASTRule, ConfigurationProviderRule {
         }
 
         return validateName(dictionary: dictionary, kind: kind).map { name, offset in
-            guard let firstCharacter = name.first else { return [] }
-
-            guard !configuration.shouldExclude(name: name) else { return [] }
-
-            let isFunction = SwiftDeclarationKind.functionKinds.contains(kind)
-            let description = Self.description
-
+            guard let firstCharacter = name.first, !configuration.shouldExclude(name: name) else {
+                return []
+            }
             let type = self.type(for: kind)
-            if !isFunction {
-                let allowedSymbols = configuration.allowedSymbols.union(.alphanumerics)
-                if !allowedSymbols.isSuperset(of: CharacterSet(charactersIn: name)) {
+            if !SwiftDeclarationKind.functionKinds.contains(kind) {
+                if !configuration.allowedSymbolsAndAlphanumerics.isSuperset(of: CharacterSet(charactersIn: name)) {
                     return [
-                        StyleViolation(ruleDescription: description,
-                                       severity: .error,
+                        StyleViolation(ruleDescription: Self.description,
+                                       severity: configuration.unallowedSymbolsSeverity.severity,
                                        location: Location(file: file, byteOffset: offset),
-                                       reason: "\(type) name '\(name)' should only contain alphanumeric characters")
+                                       reason: """
+                                            \(type) name '\(name)' should only contain alphanumeric and other \
+                                            allowed characters
+                                            """)
                     ]
                 }
 
-                if let severity = severity(forLength: name.count) {
+                if let severity = configuration.severity(forLength: name.count) {
                     let reason = "\(type) name '\(name)' should be between " +
                         "\(configuration.minLengthThreshold) and " +
                         "\(configuration.maxLengthThreshold) characters long"
@@ -64,17 +62,15 @@ struct IdentifierNameRule: ASTRule, ConfigurationProviderRule {
                 }
             }
 
-            let firstCharacterIsAllowed = configuration.allowedSymbols
-                .isSuperset(of: CharacterSet(charactersIn: String(firstCharacter)))
-            guard !firstCharacterIsAllowed else {
+            if configuration.allowedSymbols.contains(String(firstCharacter)) {
                 return []
             }
-            if let requiresCaseCheck = configuration.validatesStartWithLowercase,
+            if let caseCheckSeverity = configuration.validatesStartWithLowercase.severity,
                 kind != .varStatic && name.isViolatingCase && !name.isOperator {
                 let reason = "\(type) name '\(name)' should start with a lowercase character"
                 return [
-                    StyleViolation(ruleDescription: description,
-                                   severity: requiresCaseCheck.severity,
+                    StyleViolation(ruleDescription: Self.description,
+                                   severity: caseCheckSeverity,
                                    location: Location(file: file, byteOffset: offset),
                                    reason: reason)
                 ]

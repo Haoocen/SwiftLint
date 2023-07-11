@@ -401,7 +401,7 @@ continues to contribute more over time.
 You can find an updated list of rules and more information about them
 [here](https://realm.github.io/SwiftLint/rule-directory.html).
 
-You can also check [Source/SwiftLintFramework/Rules](https://github.com/realm/SwiftLint/tree/main/Source/SwiftLintFramework/Rules)
+You can also check [Source/SwiftLintBuiltInRules/Rules](https://github.com/realm/SwiftLint/tree/main/Source/SwiftLintBuiltInRules/Rules)
 directory to see their implementation.
 
 ### Opt-In Rules
@@ -496,24 +496,24 @@ disabled_rules: # rule identifiers turned on by default to exclude from running
   - comma
   - control_statement
 opt_in_rules: # some rules are turned off by default, so you need to opt-in
-  - empty_count # Find all the available rules by running: `swiftlint rules`
+  - empty_count # find all the available rules by running: `swiftlint rules`
 
 # Alternatively, specify all rules explicitly by uncommenting this option:
 # only_rules: # delete `disabled_rules` & `opt_in_rules` if using this
 #   - empty_parameters
 #   - vertical_whitespace
 
-analyzer_rules: # Rules run by `swiftlint analyze`
+analyzer_rules: # rules run by `swiftlint analyze`
   - explicit_self
 
-included: # paths to include during linting. `--path` is ignored if present.
+included: # case-sensitive paths to include during linting. `--path` is ignored if present
   - Source
-excluded: # paths to ignore during linting. Takes precedence over `included`.
+excluded: # case-sensitive paths to ignore during linting. Takes precedence over `included`
   - Carthage
   - Pods
   - Source/ExcludedFolder
   - Source/ExcludedFile.swift
-  - Source/*/ExcludedFile.swift # Exclude files with a wildcard
+  - Source/*/ExcludedFile.swift # exclude files with a wildcard
 
 # If true, SwiftLint will not fail if no lintable files are found.
 allow_zero_lintable_files: false

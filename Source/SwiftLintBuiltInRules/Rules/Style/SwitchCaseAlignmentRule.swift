@@ -33,7 +33,13 @@ struct SwitchCaseAlignmentRule: SwiftSyntaxRule, ConfigurationProviderRule {
                 }
               }
             }
-            """, excludeFromDocumentation: true)
+            """, excludeFromDocumentation: true),
+            Example("""
+            let a = switch i {
+                case 1: 1
+                default: 2
+            }
+            """)
         ],
         triggeringExamples: Examples(indentedCases: false).triggeringExamples
     )
@@ -55,21 +61,22 @@ extension SwitchCaseAlignmentRule {
         }
 
         override func visitPost(_ node: SwitchExprSyntax) {
+            if node.parent?.is(InitializerClauseSyntax.self) == true {
+                return
+            }
             let switchPosition = node.switchKeyword.positionAfterSkippingLeadingTrivia
-            guard
-                let switchColumn = locationConverter.location(for: switchPosition).column,
-                node.cases.isNotEmpty,
-                let firstCasePosition = node.cases.first?.positionAfterSkippingLeadingTrivia,
-                let firstCaseColumn = locationConverter.location(for: firstCasePosition).column
+            let switchColumn = locationConverter.location(for: switchPosition).column
+            guard node.cases.isNotEmpty,
+                let firstCasePosition = node.cases.first?.positionAfterSkippingLeadingTrivia
             else {
                 return
             }
 
+            let firstCaseColumn = locationConverter.location(for: firstCasePosition).column
+
             for `case` in node.cases where `case`.is(SwitchCaseSyntax.self) {
                 let casePosition = `case`.positionAfterSkippingLeadingTrivia
-                guard let caseColumn = locationConverter.location(for: casePosition).column else {
-                    continue
-                }
+                let caseColumn = locationConverter.location(for: casePosition).column
 
                 let hasViolation = (indentedCases && caseColumn <= switchColumn) ||
                     (!indentedCases && caseColumn != switchColumn) ||
@@ -81,7 +88,7 @@ extension SwitchCaseAlignmentRule {
 
                 let reason = """
                     Case statements should \
-                    \(indentedCases ? "be indented within" : "vertically align with") \
+                    \(indentedCases ? "be indented within" : "vertically aligned with") \
                     their enclosing switch statement
                     """
 

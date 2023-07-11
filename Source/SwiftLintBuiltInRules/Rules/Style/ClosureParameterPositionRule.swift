@@ -1,7 +1,7 @@
 import SwiftSyntax
 
 struct ClosureParameterPositionRule: SwiftSyntaxRule, ConfigurationProviderRule {
-    var configuration = SeverityConfiguration(.warning)
+    var configuration = SeverityConfiguration<Self>(.warning)
 
     static let description = RuleDescription(
         identifier: "closure_parameter_position",
@@ -109,20 +109,16 @@ private extension ClosureParameterPositionRule {
         }
 
         override func visitPost(_ node: ClosureExprSyntax) {
-            guard let signature = node.signature,
-                  case let leftBracePosition = node.leftBrace.positionAfterSkippingLeadingTrivia,
-                  let startLine = locationConverter.location(for: leftBracePosition).line else {
+            guard let signature = node.signature else {
                 return
             }
 
-            let localViolations = signature.positionsToCheck
-                .filter { position in
-                    guard let line = locationConverter.location(for: position).line else {
-                        return false
-                    }
+            let leftBracePosition = node.leftBrace.positionAfterSkippingLeadingTrivia
+            let startLine = locationConverter.location(for: leftBracePosition).line
 
-                    return line != startLine
-                }
+            let localViolations = signature.positionsToCheck.filter { position in
+                return locationConverter.location(for: position).line != startLine
+            }
 
             violations.append(contentsOf: localViolations)
         }
